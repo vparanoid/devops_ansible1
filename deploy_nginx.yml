@@ -1,0 +1,41 @@
+---
+- name: Deploy nginx
+  hosts: webservers
+  remote_user: runner
+  become: yes
+  become_method: sudo
+
+  tasks:
+
+  - name: Nginx install
+    apt:
+        name: nginx
+        state: latest
+        update_cache: true
+
+  - name: Check SHA hash local index file
+    stat:
+        path: ./index.html
+        checksum_algorithm: sha1
+
+    delegate_to: localhost
+    register: local_stat
+    become: no
+
+  - name: Check SHA hash remote index file
+    stat:
+        path: /var/www/html/index.html
+        checksum_algorithm: sha1
+    register: remote_stat
+
+  - name: Copy sample index file if differs
+    copy:
+        src: ./index.html
+        dest: /var/www/html/index.html
+        force: yes
+    when: local_stat.stat.checksum != remote_stat.stat.checksum
+
+  - name: Ensure Nginx is running
+    service:
+        name: nginx
+        state: started
