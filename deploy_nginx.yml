@@ -4,12 +4,13 @@
   remote_user: runner
   become: yes
   become_method: sudo
+  gather_facts: no
 
   tasks:
 
   - name: Nginx install
     apt:
-        name: nginx
+        name: nginx-extras
         state: latest
         update_cache: true
 
@@ -33,9 +34,27 @@
         src: ./index.html
         dest: /var/www/html/index.html
         force: yes
+        mode: 0644
     when: local_stat.stat.checksum != remote_stat.stat.checksum
+    notify: Restart nginx
+
+  - name: Debug
+    debug:
+        msg: "{{local_stat.stat.checksum}} {{remote_stat.stat.checksum}}"
 
   - name: Ensure Nginx is running
-    service:
+    systemd:
         name: nginx
         state: started
+    register: nginx_state
+
+  handlers:
+
+  - name: Restart nginx
+    systemd:
+          name: nginx
+          state: restarted
+          daemon_reload: true
+    register: restart_nginx_result
+    ignore_errors: true
+

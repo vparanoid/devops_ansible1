@@ -1,0 +1,7 @@
+---
+all:
+    children:
+        webservers:
+             hosts:
+                 srv1:
+                      ansible_host: 100.100.0.72
